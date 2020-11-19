@@ -1,4 +1,4 @@
-# smallStateMachine
+# small-state-machine
 
 A small state machine for java.
 
