@@ -104,10 +104,7 @@ public class SmallStateMachine<CONTEXT, EVENT, STATE> {
     }
 
     private boolean valid(){
-        if (this.state == null || this.event == null || this.context == null) {
-            return false;
-        }
-        return true;
+        return this.state != null && this.event != null && this.context != null;
     }
 
     private void process(SmallStateMachine<CONTEXT, EVENT, STATE> machine) {
