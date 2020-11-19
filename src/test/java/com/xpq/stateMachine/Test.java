@@ -32,12 +32,14 @@ public class Test {
                 .onTransit(m -> System.out.println(m.state + "->" +m.nextState))
                 .onTransit(OrderStatus.init, OrderStatus.waitPay, m -> System.out.println("init to waitPay"))
         ;
-        machine.transit(Event.pay_create, OrderStatus.init, OrderStatus.success, m -> System.out.println("pay_create init to success"))
-                .transit(Event.pay_create, OrderStatus.init, OrderStatus.waitPay, m -> System.out.println("pay_create init to waitPay"))
-                .transit(Event.pay_create, OrderStatus.waitPay, OrderStatus.success, m -> System.out.println("pay_create waitPay to success"))
-                .transit(Event.pay_create, OrderStatus.success, OrderStatus.init, m -> System.out.println("pay_create success to init"))
+
+        machine.initTransit(Event.pay_create, OrderStatus.init)
+                .transit(Event.pay_confirm, OrderStatus.init, OrderStatus.success, m -> System.out.println("pay_confirm init to success"))
+                .transit(Event.pay_confirm, OrderStatus.init, OrderStatus.waitPay, m -> System.out.println("pay_confirm init to waitPay"))
+                .transit(Event.pay_confirm, OrderStatus.waitPay, OrderStatus.success, m -> System.out.println("pay_confirm waitPay to success"))
         ;
 
-        System.out.println(machine.fire(order, Event.pay_create, OrderStatus.init));
+        machine.fire(order, Event.pay_create);
+        machine.fire(order, Event.pay_confirm, OrderStatus.init);
     }
 }

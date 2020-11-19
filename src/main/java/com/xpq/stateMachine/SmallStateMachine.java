@@ -25,6 +25,8 @@ public class SmallStateMachine<CONTEXT, EVENT, STATE> {
     private Map<STATE, Map<STATE, Consumer<SmallStateMachine<CONTEXT, EVENT, STATE>>>> transitAction = new ConcurrentHashMap<>();
     private Map<EVENT, Map<STATE, Map<STATE, Consumer<SmallStateMachine<CONTEXT, EVENT, STATE>>>>> eventTransitAction = new ConcurrentHashMap<>();
 
+    private Map<EVENT, STATE> transitInitMap = new ConcurrentHashMap<>();
+
     private SmallStateMachine() {
 
     }
@@ -74,14 +76,38 @@ public class SmallStateMachine<CONTEXT, EVENT, STATE> {
         return this;
     }
 
-    public STATE fire(CONTEXT context, EVENT event, STATE initState) {
+    public SmallStateMachine<CONTEXT, EVENT, STATE> initTransit(EVENT event, STATE to){
+        transitInitMap.put(event, to);
+        return this;
+    }
+
+    public STATE fire(CONTEXT context, EVENT event) {
         SmallStateMachine<CONTEXT, EVENT, STATE> machine = new SmallStateMachine<>();
-        machine.state = initState;
+        machine.state = transitInitMap.get(event);
         machine.event = event;
         machine.context = context;
-        invokeAction(machine, allEntryAction, entryAction, eventEntryAction);
-        process(machine);
+        if (machine.valid()) {
+            invokeAction(machine, allEntryAction, entryAction, eventEntryAction);
+        }
         return machine.state;
+    }
+
+    public STATE fire(CONTEXT context, EVENT event, STATE state) {
+        SmallStateMachine<CONTEXT, EVENT, STATE> machine = new SmallStateMachine<>();
+        machine.state = state;
+        machine.event = event;
+        machine.context = context;
+        if (machine.valid()) {
+            process(machine);
+        }
+        return machine.state;
+    }
+
+    private boolean valid(){
+        if (this.state == null || this.event == null || this.context == null) {
+            return false;
+        }
+        return true;
     }
 
     private void process(SmallStateMachine<CONTEXT, EVENT, STATE> machine) {
@@ -95,7 +121,9 @@ public class SmallStateMachine<CONTEXT, EVENT, STATE> {
             }
             Collections.reverse(transits);
         }
-
+        if (transits.size() <= 0) {
+            return;
+        }
         machine.nextState = transits.get(0).keySet().stream().findFirst().orElse(machine.state);
         if (allTransitAction != null) {
             allTransitAction.accept(machine);
