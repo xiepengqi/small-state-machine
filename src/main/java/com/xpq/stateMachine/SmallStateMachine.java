@@ -11,6 +11,7 @@ public class SmallStateMachine<CONTEXT, EVENT, STATE> {
     public CONTEXT context;
     public STATE state;
     public EVENT event;
+    public STATE nextState;
 
     private Consumer<SmallStateMachine<CONTEXT, EVENT, STATE>> allEntryAction;
     private Map<STATE, Consumer<SmallStateMachine<CONTEXT, EVENT, STATE>>> entryAction = new ConcurrentHashMap<>();
@@ -20,6 +21,7 @@ public class SmallStateMachine<CONTEXT, EVENT, STATE> {
     private Map<STATE, Consumer<SmallStateMachine<CONTEXT, EVENT, STATE>>> exitAction = new ConcurrentHashMap<>();
     private Map<EVENT, Map<STATE, Consumer<SmallStateMachine<CONTEXT, EVENT, STATE>>>> eventExitAction = new ConcurrentHashMap<>();
 
+    private Consumer<SmallStateMachine<CONTEXT, EVENT, STATE>> allTransitAction;
     private Map<STATE, Map<STATE, Consumer<SmallStateMachine<CONTEXT, EVENT, STATE>>>> transitAction = new ConcurrentHashMap<>();
     private Map<EVENT, Map<STATE, Map<STATE, Consumer<SmallStateMachine<CONTEXT, EVENT, STATE>>>>> eventTransitAction = new ConcurrentHashMap<>();
 
@@ -56,6 +58,10 @@ public class SmallStateMachine<CONTEXT, EVENT, STATE> {
         eventExitAction.computeIfAbsent(event, e -> new ConcurrentHashMap<>()).put(state, action);
         return this;
     }
+    public SmallStateMachine<CONTEXT, EVENT, STATE> onTransit(Consumer<SmallStateMachine<CONTEXT, EVENT, STATE>> action){
+        allTransitAction = action;
+        return this;
+    }
     public SmallStateMachine<CONTEXT, EVENT, STATE> onTransit(STATE from, STATE to, Consumer<SmallStateMachine<CONTEXT, EVENT, STATE>> action){
         transitAction.computeIfAbsent(from, f -> new ConcurrentHashMap<>()).put(to, action);
         return this;
@@ -90,10 +96,15 @@ public class SmallStateMachine<CONTEXT, EVENT, STATE> {
             Collections.reverse(transits);
         }
 
+        machine.nextState = transits.get(0).keySet().stream().findFirst().orElse(machine.state);
+        if (allTransitAction != null) {
+            allTransitAction.accept(machine);
+        }
         transits.forEach(transit -> transit.values().stream().findFirst().orElse(m -> {}).accept(machine));
         invokeAction(machine, allExitAction, exitAction, eventExitAction);
-        transits.forEach(transit -> machine.state = transit.keySet().stream().findFirst().orElse(machine.state));
+        machine.state = machine.nextState;
         invokeAction(machine, allEntryAction, entryAction, eventEntryAction);
+        machine.nextState = null;
     }
 
     private void invokeAction(SmallStateMachine<CONTEXT, EVENT, STATE> machine,
