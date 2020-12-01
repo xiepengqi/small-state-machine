@@ -28,22 +28,18 @@ public class Test {
 
         SmallStateMachine<Order, Event, OrderStatus> machine = SmallStateMachine.builder(Order.class, Event.class, OrderStatus.class);
 
-        machine.onEntry(m -> System.out.println(m.context.orderNo + " entry " + m.state))
-                .onExit(m -> System.out.println("exit " + m.state))
-                .onEntry(OrderStatus.init, m -> System.out.println("entryInit"))
+        machine.onEntry(OrderStatus.init, m -> System.out.println("entryInit"))
                 .onExit(OrderStatus.init, m -> System.out.println("exitInit"))
-                .onExit(Event.pay_create, OrderStatus.init, m -> System.out.println("pay_create exit init"))
-                .onTransit(m -> System.out.println(m.state + "->" +m.nextState))
-                .onTransit(OrderStatus.init, OrderStatus.waitPay, m -> System.out.println("init to waitPay"))
+        .onEntry(OrderStatus.waitPay, m -> System.out.println("entryWaitPay"))
         ;
 
-        machine.initTransit(Event.pay_create, OrderStatus.init)
-                .transit(Event.pay_confirm, OrderStatus.init, OrderStatus.success, m -> System.out.println("pay_confirm init to success"))
-                .transit(Event.pay_confirm, OrderStatus.init, OrderStatus.waitPay, m -> System.out.println("pay_confirm init to waitPay"))
-                .transit(Event.pay_confirm, OrderStatus.waitPay, OrderStatus.success, m -> System.out.println("pay_confirm waitPay to success"))
+        machine.defTransit(Event.pay_create, OrderStatus.init, m -> System.out.println("to init"))
+                .defTransit(Event.pay_confirm, OrderStatus.init, OrderStatus.success, m -> System.out.println("pay_confirm init to success"))
+                .defTransit(Event.pay_confirm, OrderStatus.init, OrderStatus.waitPay, m -> System.out.println("pay_confirm init to waitPay"))
+                .defTransit(Event.pay_confirm, OrderStatus.waitPay, OrderStatus.success, m -> System.out.println("pay_confirm waitPay to success"))
         ;
 
-        machine.fire(order, Event.pay_create);
+        machine.fire(order, Event.pay_create, null);
         machine.fire(order, Event.pay_confirm, OrderStatus.init);
     }
 }
